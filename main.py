@@ -6,8 +6,8 @@ Digital Twin Example: Luc's AI Agents
 
 import os
 from crewai import Agent, Task, Crew, Process
-from crewai_tools import FileWriterTool
 from dotenv import load_dotenv
+from nanda_adapter import NANDA  
 load_dotenv()
 
 # --- Agent Definitions ---
@@ -24,20 +24,14 @@ def create_student_agent():
     )
 
 def create_mentor_agent(topic):
-    safe_topic = "".join(c for c in topic if c.isalnum() or c in (' ', '-', '_')).rstrip()
-    safe_topic = safe_topic.replace(' ', '_').lower()
-    filename = f"{safe_topic}_explained.md"
-    
     return Agent(
         role="Content Mentor",
         goal="Rewrite technical explanations into simple, approachable language",
         backstory="""You are Luc's approachable mentor persona.
         You explain concepts without jargon so peers can quickly understand.""",
         verbose=True,
-        allow_delegation=False,
-        tools=[FileWriterTool(file_path=filename)]  # Dynamic filename
+        allow_delegation=False
     )
-
 # --- Task Definitions ---
 
 def create_research_task(agent, topic):
@@ -53,53 +47,43 @@ def create_research_task(agent, topic):
     )
 
 def create_writing_task(agent, topic):
-    # Create a safe filename from the topic
-    safe_topic = "".join(c for c in topic if c.isalnum() or c in (' ', '-', '_')).rstrip()
-    safe_topic = safe_topic.replace(' ', '_').lower()
-    filename = f"{safe_topic}_explained.md"
-    
     return Task(
         description=f"Take the research findings on {topic} and rewrite them \
-        in simple, beginner-friendly language. Use the FileWriterTool to save \
-        the result to '{filename}'.",
-        expected_output=f"A markdown file with a peer-friendly explanation saved as {filename}",
+        in simple, beginner-friendly language. Return the explanation as plain text.",
+        expected_output=f"A peer-friendly explanation of {topic} as plain text",
         agent=agent
     )
 
-# --- Main Crew Orchestration ---
+# --- Crew Logic wrapped for NANDA ---
 
-def main():
-    print("🚀 Starting Luc's CrewAI Digital Twin")
-    print("=" * 50)
-
-    topic = input("Enter a topic you'd like Luc's agent to explain (default: SimCLR): ")
-    if not topic.strip():
+def crew_agent_logic(message_text: str) -> str:
+    """This function runs your CrewAI pipeline on a given topic."""
+    topic = message_text.strip()
+    if not topic:
         topic = "SimCLR"
-        print(f"Using default topic: {topic}")
 
-    # Create agents
     student = create_student_agent()
     mentor = create_mentor_agent(topic)
 
-    # Create tasks
     research_task = create_research_task(student, topic)
     writing_task = create_writing_task(mentor, topic)
 
-    # Assemble crew
     crew = Crew(
         agents=[student, mentor],
         tasks=[research_task, writing_task],
         process=Process.sequential,
-        verbose=True
+        verbose=False
     )
 
-    # Run crew
-    print("\n🎯 Executing crew...\n")
     result = crew.kickoff()
+    return str(result)
 
-    print("\n✅ Crew execution completed!")
-    print("=" * 50)
-    print(result)
+# --- NANDA Server Startup ---
 
 if __name__ == "__main__":
-    main()
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    domain = os.getenv("DOMAIN_NAME")
+
+    # NANDA wraps your Crew logic
+    nanda = NANDA(crew_agent_logic)
+    nanda.start_server_api(anthropic_key, domain)
