@@ -1,5 +1,0 @@
-crewai
-
-python-dotenv
-nanda-adapter
-requests
