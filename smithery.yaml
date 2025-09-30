@@ -5,6 +5,8 @@ startCommand:
   command: "python"
   args:
     - "-m"
-    - "mentor_mcp"   # this will trigger __main__.py inside mentor_mcp
+    - "mentor_mcp"
 env:
-  PORT: "8080"
+  MCP_TRANSPORT: "sse"
+  MCP_PORT: "8080"
+  MCP_HOST: "0.0.0.0"
