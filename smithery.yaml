@@ -1,21 +1,10 @@
-id: mentor_start_up_agent
-name: "Mentor Start Up Agent"
-description: "An MCP server that explains technical topics using CrewAI mentor/student agents."
+runtime: "python3"
 
-# Tell Smithery this is a Python MCP server
-entrypoint:
-  type: python
-  path: mentor_mcp/main.py
-  venv: true   # Smithery will create its own venv
-
-# Dependencies
-dependencies:
-  - crewai>=0.30.0
-  - nanda-adapter
-  - requests
-  - python-dotenv
-
-# Optional metadata
-metadata:
-  author: Luc
-  repo: https://github.com/Lucchh/mentor_start_up_agent
+startCommand:
+  type: "http"
+  command: "python"
+  args:
+    - "-m"
+    - "mentor_mcp"   # this will trigger __main__.py inside mentor_mcp
+env:
+  PORT: "8080"
