@@ -1,30 +1,41 @@
-# run_adapter.py
+#!/usr/bin/env python3
+"""
+Run adapter for NANDA + Mentor MCP server
+"""
+
+import os
 from dotenv import load_dotenv
 from nanda_adapter import NANDA
-import os
+from mentor_mcp.main import startup_brief_plain as startup_brief
+
 
 # Load env variables
 load_dotenv()
 
-from mentor_mcp.main import explain_topic, startup_brief
+def improvement_fn(message: str):
+    """Custom logic for message improvement"""
+    if not message:
+        return {"response": "No input provided."}
 
-def improvement_fn(message: str) -> str:
     if message.lower().startswith("startup:"):
-        return startup_brief(message[len("startup:"):].strip())
+        result = startup_brief(message[len("startup:"):].strip())
     else:
-        return explain_topic(message)
+        result = explain_topic(message)
+
+    return {"response": str(result)}
 
 def main():
-    # Here we don’t need Anthropic key
-    openai_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
     domain = os.getenv("DOMAIN_NAME")
 
-    if not openai_key:
-        raise RuntimeError("OPENAI_API_KEY not set")
+    if not api_key:
+        raise RuntimeError("No API key found (OPENAI_API_KEY or ANTHROPIC_API_KEY)")
+    if not domain:
+        raise RuntimeError("DOMAIN_NAME not set in .env")
 
+    # Run NANDA with your logic
     nanda = NANDA(improvement_fn)
-    # Pass openai_key to start_server_api so adapter has it
-    nanda.start_server_api(openai_key, domain)
+    nanda.start_server_api(api_key, domain)
 
 if __name__ == "__main__":
     main()
